@@ -3,21 +3,21 @@ import moment from 'moment'
 const EPSILON = 0.001
 
 // so we could use both immutable.js objects and regular objects
-export function _get (object, key) {
+export function _get(object, key) {
   return typeof object.get === 'function' ? object.get(key) : object[key]
 }
 
-export function _length (object) {
+export function _length(object) {
   return typeof object.count === 'function' ? object.count() : object.length
 }
 
-export function arraysEqual (array1, array2) {
+export function arraysEqual(array1, array2) {
   return (_length(array1) === _length(array2)) && array1.every((element, index) => {
     return element === _get(array2, index)
   })
 }
 
-export function iterateTimes (start, end, unit, timeSteps, callback) {
+export function iterateTimes(start, end, unit, timeSteps, callback) {
   let time = moment(start).startOf(unit)
 
   if (timeSteps[unit] && timeSteps[unit] > 1) {
@@ -32,47 +32,38 @@ export function iterateTimes (start, end, unit, timeSteps, callback) {
   }
 }
 
-export function getMinUnit (zoom, width, timeSteps) {
-  let timeDividers = {
-    second: 1000,
-    minute: 60,
-    hour: 60,
-    day: 24,
-    month: 30,
-    year: 12
+export function getMinUnit(zoom, width, timeSteps) {
+  if (zoom / 1000 <= 60) {
+    return 'second'
+  } else if (zoom / 1000 / 60 <= 60) {
+    return 'minute'
+  } else if (zoom / 1000 / 60 / 60 <= 24) {
+    return 'hour'
+  } else if (zoom / 1000 / 60 / 60 / 24 <= 7) {
+    return 'day'
+  } else if (zoom / 1000 / 60 / 60 / 24 / 7 <= 5) {
+    return 'week'
+  } else if (zoom / 1000 / 60 / 60 / 24 / 31 <= 12) {
+    return 'month'
+  } else {
+    return 'year'
   }
-
-  let minUnit = 'year'
-  let breakCount = zoom
-  const minCellWidth = 17
-
-  Object.keys(timeDividers).some(unit => {
-    breakCount = breakCount / timeDividers[unit]
-    const cellCount = breakCount / timeSteps[unit]
-    const countNeeded = width / (timeSteps[unit] && timeSteps[unit] > 1 ? 3 * minCellWidth : minCellWidth)
-
-    if (cellCount < countNeeded) {
-      minUnit = unit
-      return true
-    }
-  })
-
-  return minUnit
 }
 
-export function getNextUnit (unit) {
+export function getNextUnit(unit) {
   let nextUnits = {
     second: 'minute',
     minute: 'hour',
     hour: 'day',
-    day: 'month',
+    day: 'week',
+    week: 'month',
     month: 'year'
   }
 
   return nextUnits[unit] || ''
 }
 
-export function getParentPosition (element) {
+export function getParentPosition(element) {
   var xPosition = 0
   var yPosition = 0
   var first = true
@@ -86,30 +77,30 @@ export function getParentPosition (element) {
     element = element.offsetParent
     first = false
   }
-  return { x: xPosition, y: yPosition }
+  return {x: xPosition, y: yPosition}
 }
 
-export function coordinateToTimeRatio (canvasTimeStart, canvasTimeEnd, canvasWidth) {
+export function coordinateToTimeRatio(canvasTimeStart, canvasTimeEnd, canvasWidth) {
   return (canvasTimeEnd - canvasTimeStart) / canvasWidth
 }
 
-export function calculateDimensions ({
-                                       itemTimeStart,
-                                       itemTimeEnd,
-                                       isDragging,
-                                       isResizing,
-                                       canvasTimeStart,
-                                       canvasTimeEnd,
-                                       canvasWidth,
-                                       dragSnap,
-                                       dragTime,
-                                       resizingItem,
-                                       resizingEdge,
-                                       resizeTime,
-                                       fullUpdate,
-                                       visibleTimeStart,
-                                       visibleTimeEnd
-                                     }) {
+export function calculateDimensions({
+                                      itemTimeStart,
+                                      itemTimeEnd,
+                                      isDragging,
+                                      isResizing,
+                                      canvasTimeStart,
+                                      canvasTimeEnd,
+                                      canvasWidth,
+                                      dragSnap,
+                                      dragTime,
+                                      resizingItem,
+                                      resizingEdge,
+                                      resizeTime,
+                                      fullUpdate,
+                                      visibleTimeStart,
+                                      visibleTimeEnd
+                                    }) {
   const itemStart = (isResizing && resizingEdge === 'left' ? resizeTime : itemTimeStart)
   const itemEnd = (isResizing && resizingEdge === 'right' ? resizeTime : itemTimeEnd)
 
@@ -167,8 +158,8 @@ export function calculateDimensions ({
   return dimensions
 }
 
-export function getGroupOrders (groups, keys) {
-  const { groupIdKey } = keys
+export function getGroupOrders(groups, keys) {
+  const {groupIdKey} = keys
 
   let groupOrders = {}
 
@@ -179,24 +170,24 @@ export function getGroupOrders (groups, keys) {
   return groupOrders
 }
 
-export function getVisibleItems (items, canvasTimeStart, canvasTimeEnd, keys) {
-  const { itemTimeStartKey, itemTimeEndKey } = keys
+export function getVisibleItems(items, canvasTimeStart, canvasTimeEnd, keys) {
+  const {itemTimeStartKey, itemTimeEndKey} = keys
 
   return items.filter(item => {
     return _get(item, itemTimeStartKey) <= canvasTimeEnd && _get(item, itemTimeEndKey) >= canvasTimeStart
   })
 }
 
-export function collision (a, b, lineHeight) {
+export function collision(a, b, lineHeight) {
   // var verticalMargin = (lineHeight - a.height)/2;
   var verticalMargin = 0
   return ((a.collisionLeft + EPSILON) < (b.collisionLeft + b.collisionWidth) &&
-  (a.collisionLeft + a.collisionWidth - EPSILON) > b.collisionLeft &&
-  (a.top - verticalMargin + EPSILON) < (b.top + b.height) &&
-  (a.top + a.height + verticalMargin - EPSILON) > b.top)
+    (a.collisionLeft + a.collisionWidth - EPSILON) > b.collisionLeft &&
+    (a.top - verticalMargin + EPSILON) < (b.top + b.height) &&
+    (a.top + a.height + verticalMargin - EPSILON) > b.top)
 }
 
-export function stack (items, groupOrders, lineHeight, headerHeight, force) {
+export function stack(items, groupOrders, lineHeight, headerHeight, force) {
   var i, iMax
   var totalHeight = headerHeight
 
@@ -256,7 +247,7 @@ export function stack (items, groupOrders, lineHeight, headerHeight, force) {
   }
 }
 
-export function nostack (items, groupOrders, lineHeight, headerHeight, force) {
+export function nostack(items, groupOrders, lineHeight, headerHeight, force) {
   var i, iMax
 
   var totalHeight = headerHeight
@@ -298,7 +289,7 @@ export function nostack (items, groupOrders, lineHeight, headerHeight, force) {
   }
 }
 
-export function keyBy (value, key) {
+export function keyBy(value, key) {
   let obj = {}
 
   value.forEach(function (element, index, array) {
@@ -308,7 +299,7 @@ export function keyBy (value, key) {
   return obj
 }
 
-export function getGroupedItems (items, groupOrders) {
+export function getGroupedItems(items, groupOrders) {
   var arr = []
 
   // Initialize with empty arrays for each group
@@ -325,12 +316,12 @@ export function getGroupedItems (items, groupOrders) {
   return arr
 }
 
-export function hasSomeParentTheClass (element, classname) {
+export function hasSomeParentTheClass(element, classname) {
   if (element.className && element.className.split(' ').indexOf(classname) >= 0) return true
   return element.parentNode && hasSomeParentTheClass(element.parentNode, classname)
 }
 
-export function deepObjectCompare (obj1, obj2) {
+export function deepObjectCompare(obj1, obj2) {
   for (var p in obj1) {
     if (obj1.hasOwnProperty(p) !== obj2.hasOwnProperty(p)) return false
 
